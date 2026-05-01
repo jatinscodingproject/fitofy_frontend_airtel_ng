@@ -1,35 +1,24 @@
 import { useState, useRef, useEffect } from "react";
 import Hls from "hls.js";
+import axios from "axios";
 
-const videos = [
-  "10-Min-Yoga",
-  "FULL-STRETCH",
-  "Lifestyle-Yoga-Practice",
-  "Lifestyle-Yoga-With-Baby",
-  "Meditation-Yoga",
-  "Vinyasa-Yoga",
-  "Yoga-Beginners",
-  "Yoga-Class",
-  "Yoga-For-High-BP",
-  "Yoga-For-Weight-Gain",
-  "Yoga-Full-Body",
-  "Yoga-Mat",
-  "Yoga-On-The-Beach",
-  "Yoga-Relaxation"
-];
-
-export default function YogaVideos() {
-  const [selected, setSelected] = useState<string | null>(null);
+export default function LifestyleVideos() {
+  const [videos, setVideos] = useState<any[]>([]);
+  const [selected, setSelected] = useState<any>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // ✅ SIMPLE thumbnail mapping (no hacks needed anymore)
-  const getThumbnail = (name: string) => {
-    return `https://telza.fitofyy.com/Yoga/thumbnails/${name}.png`;
-  };
+  // ✅ Load videos from API
+  useEffect(() => {
+    axios
+      .get("https://airtelng.kidszonepro.com/api/hls/yoga-videos")
+      .then((res) => setVideos(res.data))
+      .catch((err) => console.error(err));
+  }, []);
 
+  // ✅ Load HLS video
   useEffect(() => {
     if (selected && videoRef.current) {
-      const src = `https://telza.fitofyy.com/Yoga/${selected}/${selected}.m3u8`;
+      const src = `https://airtelng.kidszonepro.com/content/Yoga/${selected.slug}/${selected.slug}.m3u8`;
 
       let hls: Hls | null = null;
 
@@ -41,31 +30,35 @@ export default function YogaVideos() {
         videoRef.current.src = src;
       }
 
-      // ✅ cleanup (important)
       return () => {
-        if (hls) {
-          hls.destroy();
-        }
+        if (hls) hls.destroy();
       };
     }
   }, [selected]);
 
+  // ✅ Thumbnail path
+  const getThumbnail = (name: string) => {
+    return `https://airtelng.kidszonepro.com/content/Yoga/thumbnails/${encodeURIComponent(
+      name
+    )}.png`;
+  };
+
   return (
     <div className="bg-black min-h-screen text-white p-6">
       <h1 className="text-3xl mb-8 text-center font-bold">
-        Yoga Library
+        Yoga Videos
       </h1>
 
       {/* GRID */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {videos.map((name) => (
+        {videos.map((video) => (
           <div
-            key={name}
-            onClick={() => setSelected(name)}
+            key={video.name}
+            onClick={() => setSelected(video)}
             className="cursor-pointer group"
           >
             <img
-              src={getThumbnail(name)}
+              src={getThumbnail(video.name)}
               onError={(e) => {
                 e.currentTarget.src =
                   "https://via.placeholder.com/300x200?text=No+Image";
@@ -74,13 +67,13 @@ export default function YogaVideos() {
             />
 
             <p className="mt-2 text-center text-sm">
-              {name.replaceAll("-", " ")}
+              {video.name}
             </p>
           </div>
         ))}
       </div>
 
-      {/* PLAYER MODAL */}
+      {/* PLAYER */}
       {selected && (
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
           <div className="w-[90%] max-w-5xl">
