@@ -90,7 +90,9 @@ export default function SubscribeBanner() {
 
         {/* Bottom Text */}
         <div className="mt-10">
-          
+          <p className="mt-2 text-base md:text-xl text-white/80">
+            First Day Free
+          </p>
           <p className="mt-2 text-base md:text-lg text-white/80">
             Yoga • Meditation • Wellness
           </p>
