@@ -15,7 +15,7 @@ export default function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Already logged in
+        // User already authenticated
         if (token) {
           setChecking(false);
           return;
@@ -27,13 +27,11 @@ export default function App() {
 
         const msisdn = params.get("msisdn");
 
-        // If msisdn available check subscription
+        // CASE 1: User returned from SDP with msisdn
         if (msisdn) {
           const response = await axios.post(
             "https://airtelng.fitofyy.com/api/check-subscription",
-            {
-              msisdn,
-            }
+            { msisdn }
           );
 
           if (
@@ -53,17 +51,19 @@ export default function App() {
 
             setToken(response.data.token);
 
+            // Remove query string
             window.history.replaceState(
               {},
               document.title,
               window.location.pathname
             );
 
+            setChecking(false);
             return;
           }
         }
 
-        // No msisdn OR inactive subscription
+        // CASE 2: Normal URL OR subscription inactive
         const subscribeResponse = await axios.post(
           "https://airtelng.fitofyy.com/api/create-subscription",
           {
@@ -76,9 +76,10 @@ export default function App() {
             subscribeResponse.data.redirect_url;
           return;
         }
+
+        setChecking(false);
       } catch (error) {
-        console.error(error);
-      } finally {
+        console.error("Initialization failed:", error);
         setChecking(false);
       }
     };
