@@ -15,7 +15,7 @@ export default function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // User already authenticated
+        // Already authenticated
         if (token) {
           setChecking(false);
           return;
@@ -27,7 +27,7 @@ export default function App() {
 
         const msisdn = params.get("msisdn");
 
-        // CASE 1: User returned from SDP with msisdn
+        // User returned from SDP with msisdn
         if (msisdn) {
           const response = await axios.post(
             "/api/check-subscription",
@@ -63,7 +63,7 @@ export default function App() {
           }
         }
 
-        // CASE 2: Normal URL OR subscription inactive
+        // No token or inactive subscription
         const subscribeResponse = await axios.post(
           "/api/create-subscription",
           {
