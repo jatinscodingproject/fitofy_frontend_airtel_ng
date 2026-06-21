@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 import Navbar from "./components/Navbar";
-import SubscribeBanner from "./components/SubscribeBanner";
 import HeroSlider from "./components/HeroSlider";
 import Videos from "./components/Videos";
 import Footer from "./components/Footer";
@@ -15,6 +14,11 @@ export default function App() {
 
   useEffect(() => {
     const autoLogin = async () => {
+      if (token) {
+        setChecking(false);
+        return;
+      }
+
       try {
         const params = new URLSearchParams(window.location.search);
         const msisdn = params.get("msisdn");
@@ -56,14 +60,14 @@ export default function App() {
           );
         }
       } catch (error) {
-        console.error(error);
+        console.error("Subscription check failed:", error);
       } finally {
         setChecking(false);
       }
     };
 
     autoLogin();
-  }, []);
+  }, [token]);
 
   if (checking) {
     return (
@@ -76,12 +80,7 @@ export default function App() {
   }
 
   if (!token) {
-    return (
-      <>
-       
-        <SubscribeBanner />
-      </>
-    );
+    return null;
   }
 
   return (
