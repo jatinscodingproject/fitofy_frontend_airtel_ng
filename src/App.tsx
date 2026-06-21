@@ -30,7 +30,7 @@ export default function App() {
         // If msisdn available check subscription
         if (msisdn) {
           const response = await axios.post(
-            "/api/check-subscription",
+            "https://airtelng.fitofyy.com/api/check-subscription",
             {
               msisdn,
             }
@@ -65,7 +65,7 @@ export default function App() {
 
         // No msisdn OR inactive subscription
         const subscribeResponse = await axios.post(
-          "/api/create-subscription",
+          "https://airtelng.fitofyy.com/api/create-subscription",
           {
             plan: "daily",
           }
