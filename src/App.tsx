@@ -13,61 +13,78 @@ export default function App() {
   );
 
   useEffect(() => {
-    const autoLogin = async () => {
-      if (token) {
-        setChecking(false);
-        return;
-      }
-
+    const initializeApp = async () => {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const msisdn = params.get("msisdn");
-
-        if (!msisdn) {
+        // Already logged in
+        if (token) {
           setChecking(false);
           return;
         }
 
-        const response = await axios.post(
-          "/api/check-subscription",
+        const params = new URLSearchParams(
+          window.location.search
+        );
+
+        const msisdn = params.get("msisdn");
+
+        // If msisdn available check subscription
+        if (msisdn) {
+          const response = await axios.post(
+            "/api/check-subscription",
+            {
+              msisdn,
+            }
+          );
+
+          if (
+            response.data.success &&
+            response.data.active &&
+            response.data.token
+          ) {
+            localStorage.setItem(
+              "authToken",
+              response.data.token
+            );
+
+            localStorage.setItem(
+              "mobile",
+              msisdn
+            );
+
+            setToken(response.data.token);
+
+            window.history.replaceState(
+              {},
+              document.title,
+              window.location.pathname
+            );
+
+            return;
+          }
+        }
+
+        // No msisdn OR inactive subscription
+        const subscribeResponse = await axios.post(
+          "/api/create-subscription",
           {
-            msisdn,
+            plan: "daily",
           }
         );
 
-        if (
-          response.data.success &&
-          response.data.active &&
-          response.data.token
-        ) {
-          localStorage.setItem(
-            "authToken",
-            response.data.token
-          );
-
-          localStorage.setItem(
-            "mobile",
-            msisdn
-          );
-
-          setToken(response.data.token);
-
-          // Remove msisdn from URL
-          window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname
-          );
+        if (subscribeResponse.data.redirect_url) {
+          window.location.href =
+            subscribeResponse.data.redirect_url;
+          return;
         }
       } catch (error) {
-        console.error("Subscription check failed:", error);
+        console.error(error);
       } finally {
         setChecking(false);
       }
     };
 
-    autoLogin();
-  }, [token]);
+    initializeApp();
+  }, []);
 
   if (checking) {
     return (
