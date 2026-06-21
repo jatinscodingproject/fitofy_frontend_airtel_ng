@@ -30,7 +30,7 @@ export default function App() {
         // CASE 1: User returned from SDP with msisdn
         if (msisdn) {
           const response = await axios.post(
-            "https://airtelng.fitofyy.com/api/check-subscription",
+            "/api/check-subscription",
             { msisdn }
           );
 
@@ -65,7 +65,7 @@ export default function App() {
 
         // CASE 2: Normal URL OR subscription inactive
         const subscribeResponse = await axios.post(
-          "https://airtelng.fitofyy.com/api/create-subscription",
+          "/api/create-subscription",
           {
             plan: "daily",
           }
