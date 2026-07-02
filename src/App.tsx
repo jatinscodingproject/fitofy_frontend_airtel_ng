@@ -8,87 +8,79 @@ import Footer from "./components/Footer";
 
 export default function App() {
   const [checking, setChecking] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem("authToken"));
+  const [token, setToken] = useState(
+    localStorage.getItem("authToken")
+  );
 
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        const storedToken = localStorage.getItem("authToken");
-        const storedMsisdn = localStorage.getItem("mobile");
+  const initializeApp = async () => {
+    try {
+      const params = new URLSearchParams(window.location.search);
 
-        const params = new URLSearchParams(window.location.search);
-        const queryMsisdn = params.get("msisdn");
+      // Prefer msisdn from URL, otherwise use stored one
+      const msisdn =
+        params.get("msisdn") || localStorage.getItem("mobile");
 
-        // Prefer latest msisdn from SDP callback
-        const msisdn = queryMsisdn || storedMsisdn;
+      if (msisdn) {
+        const response = await axios.post("/api/check-subscription", {
+          msisdn,
+        });
 
-        // Always validate subscription
-        if (msisdn) {
-          const response = await axios.post("/api/check-subscription", {
-            msisdn,
-          });
+        if (
+          response.data.success &&
+          response.data.active &&
+          response.data.token
+        ) {
+          // Always update token
+          localStorage.setItem("authToken", response.data.token);
+          localStorage.setItem("mobile", msisdn);
 
-          if (
-            response.data.success &&
-            response.data.active &&
-            response.data.token
-          ) {
-            // Replace token every visit
-            localStorage.setItem("authToken", response.data.token);
-            localStorage.setItem("mobile", msisdn);
+          setToken(response.data.token);
 
-            setToken(response.data.token);
+          // Remove query string
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+          );
 
-            // Remove query string
-            window.history.replaceState(
-              {},
-              document.title,
-              window.location.pathname
-            );
-
-            setChecking(false);
-            return;
-          }
-
-          // User unsubscribed/inactive -> remove old token
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("mobile");
-          setToken(null);
-        } else {
-          // No MSISDN available
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("mobile");
-          setToken(null);
-        }
-
-        // Redirect to subscription
-        const subscribeResponse = await axios.post(
-          "/api/create-subscription",
-          {
-            plan: "daily",
-          }
-        );
-
-        if (subscribeResponse.data.redirect_url) {
-          window.location.href = subscribeResponse.data.redirect_url;
+          setChecking(false);
           return;
         }
 
-        setChecking(false);
-      } catch (error) {
-        console.error("Initialization failed:", error);
-
-        // Remove invalid token on any validation error
+        // Subscription inactive/unsubscribed
         localStorage.removeItem("authToken");
         localStorage.removeItem("mobile");
         setToken(null);
-
-        setChecking(false);
       }
-    };
 
-    initializeApp();
-  }, []);
+      // Redirect to subscription
+      const subscribeResponse = await axios.post(
+        "/api/create-subscription",
+        {
+          plan: "daily",
+        }
+      );
+
+      if (subscribeResponse.data.redirect_url) {
+        window.location.href = subscribeResponse.data.redirect_url;
+        return;
+      }
+
+      setChecking(false);
+    } catch (error) {
+      console.error("Initialization failed:", error);
+
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("mobile");
+      setToken(null);
+
+      setChecking(false);
+    }
+  };
+
+  initializeApp();
+}, []);
 
   if (checking) {
     return (
