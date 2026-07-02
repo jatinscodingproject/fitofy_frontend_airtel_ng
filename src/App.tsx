@@ -8,46 +8,34 @@ import Footer from "./components/Footer";
 
 export default function App() {
   const [checking, setChecking] = useState(true);
-  const [token, setToken] = useState(
-    localStorage.getItem("authToken")
-  );
+  const [token, setToken] = useState(localStorage.getItem("authToken"));
 
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Already authenticated
-        if (token) {
-          setChecking(false);
-          return;
-        }
+        const storedToken = localStorage.getItem("authToken");
+        const storedMsisdn = localStorage.getItem("mobile");
 
-        const params = new URLSearchParams(
-          window.location.search
-        );
+        const params = new URLSearchParams(window.location.search);
+        const queryMsisdn = params.get("msisdn");
 
-        const msisdn = params.get("msisdn");
+        // Prefer latest msisdn from SDP callback
+        const msisdn = queryMsisdn || storedMsisdn;
 
-        // User returned from SDP with msisdn
+        // Always validate subscription
         if (msisdn) {
-          const response = await axios.post(
-            "/api/check-subscription",
-            { msisdn }
-          );
+          const response = await axios.post("/api/check-subscription", {
+            msisdn,
+          });
 
           if (
             response.data.success &&
             response.data.active &&
             response.data.token
           ) {
-            localStorage.setItem(
-              "authToken",
-              response.data.token
-            );
-
-            localStorage.setItem(
-              "mobile",
-              msisdn
-            );
+            // Replace token every visit
+            localStorage.setItem("authToken", response.data.token);
+            localStorage.setItem("mobile", msisdn);
 
             setToken(response.data.token);
 
@@ -61,9 +49,19 @@ export default function App() {
             setChecking(false);
             return;
           }
+
+          // User unsubscribed/inactive -> remove old token
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("mobile");
+          setToken(null);
+        } else {
+          // No MSISDN available
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("mobile");
+          setToken(null);
         }
 
-        // No token or inactive subscription
+        // Redirect to subscription
         const subscribeResponse = await axios.post(
           "/api/create-subscription",
           {
@@ -72,14 +70,19 @@ export default function App() {
         );
 
         if (subscribeResponse.data.redirect_url) {
-          window.location.href =
-            subscribeResponse.data.redirect_url;
+          window.location.href = subscribeResponse.data.redirect_url;
           return;
         }
 
         setChecking(false);
       } catch (error) {
         console.error("Initialization failed:", error);
+
+        // Remove invalid token on any validation error
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("mobile");
+        setToken(null);
+
         setChecking(false);
       }
     };
